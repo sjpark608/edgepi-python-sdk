@@ -44,6 +44,7 @@ class SpiDevice:
         Open SPI device file
         """
         try:
+            self.lock_spi.acquire()
             self.spi = SPI(
                 self.devpath,
                 self.mode,
@@ -56,6 +57,7 @@ class SpiDevice:
             yield self.spi
         finally:
             self.spi.close()
+            self.lock_spi.release()
 
 
     def transfer(self, data: list) -> list:
