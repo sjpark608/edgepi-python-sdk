@@ -7,6 +7,7 @@ Classes:
 
 
 import logging
+import threading
 from contextlib import contextmanager
 from periphery import SPI
 
@@ -17,7 +18,6 @@ class SpiDevice:
     """Class representing an I2C device"""
 
     _devPath = "/dev/spidev"
-
     def __init__(
         self,
         bus_num: int = None,
@@ -35,6 +35,8 @@ class SpiDevice:
         self.bits_per_word = bits_per_word
         self.extra_flags = extra_flags
         self.spi = None
+        self.lock_spi = threading.Lock()
+
 
     @contextmanager
     def spi_open(self):

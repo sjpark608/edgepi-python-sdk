@@ -213,11 +213,12 @@ class EdgePiADC(SPI):
         if num_regs < 1:
             raise ValueError("Number of registers to read must be at least 1")
         code = self.adc_ops.read_register_command(start_addx.value, num_regs)
-        with self.spi_open():
-            out = self.transfer(code)
-            _logger.debug(f"__read_register: received {out}")
-            # first 2 entries are null bytes
-            return out[2:]
+        with self.lock_spi:
+            with self.spi_open():
+                out = self.transfer(code)
+                _logger.debug(f"__read_register: received {out}")
+                # first 2 entries are null bytes
+        return out[2:]
 
     def __write_register(self, start_addx: ADCReg, data: list[int]):
         """
@@ -233,8 +234,9 @@ class EdgePiADC(SPI):
             raise ValueError("Number of registers to write to must be at least 1")
         code = self.adc_ops.write_register_command(start_addx.value, data)
         _logger.debug(f"__write_register: sending {code}")
-        with self.spi_open():
-            out = self.transfer(code)
+        with self.lock_spi:
+            with self.spi_open():
+                out = self.transfer(code)
         return out
 
     def __set_rtd_pin(self, enable: bool = False):
@@ -276,14 +278,16 @@ class EdgePiADC(SPI):
         Halt voltage read conversions when ADC is set to perform continuous conversions
         """
         stop_cmd = self.adc_ops.stop_adc(adc_num=adc_num.value)
-        with self.spi_open():
-            self.transfer(stop_cmd)
+        with self.lock_spi:
+            with self.spi_open():
+                self.transfer(stop_cmd)
 
     def __send_start_command(self, adc_num: ADCNum):
         """Triggers ADC conversion(s)"""
         start_cmd = self.adc_ops.start_adc(adc_num=adc_num.value)
-        with self.spi_open():
-            self.transfer(start_cmd)
+        with self.lock_spi:
+            with self.spi_open():
+                self.transfer(start_cmd)
 
     def start_conversions(self, adc_num: ADCNum):
         """
@@ -564,8 +568,9 @@ class EdgePiADC(SPI):
         Note this state differs from ADS1263 default power-on, due to
         application of custom power-on configurations required by EdgePi.
         """
-        with self.spi_open():
-            self.transfer(self.adc_ops.reset_adc())
+        with self.lock_spi:
+            with self.spi_open():
+                self.transfer(self.adc_ops.reset_adc())
         self.__reapply_config()
 
     def __is_data_ready(self, adc_num: ADCNum):
